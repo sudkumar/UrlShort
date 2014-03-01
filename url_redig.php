@@ -10,7 +10,7 @@ require 'connect.php';
 	$query_run = mysql_query($query);
 	$row = mysql_fetch_assoc($query_run);
 	$direct = $row['urls'];
-	header('Location:'.$direct );
+	header('Location:http://'.$direct );
  	
  	
  	
