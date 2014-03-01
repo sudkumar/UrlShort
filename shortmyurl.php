@@ -30,45 +30,50 @@ session_start();
 	$script_array[$length] = "";
 	$script_name = implode('/', $script_array);		
 if( isset($_POST["long_url"]) && !empty($_POST["long_url"])){
-	$hostname = trim(htmlentities($_POST["long_url"]));
+	$hostname = trim(htmlentities($_POST["long_url"]));	// for security reasons
 	$protocol1 = 'http://';
 	$protocol2 = 'https://';
-	$new_hostname = str_ireplace($protocol1, "", $hostname);
+	$new_hostname = str_ireplace($protocol1, "", $hostname);		//string replacement case insencetive
 	$new_hostname = str_ireplace($protocol2, "",$new_hostname);	
-		
-	$hashed_hostname = md5($new_hostname);
-
-	$half1_hashed_hostname = substr($hashed_hostname, 0, strlen($hashed_hostname)/2);	
-	$half2_hashed_hostname = substr($hashed_hostname, strlen($hashed_hostname)/2 + 1, strlen($hashed_hostname)); 
-	$up_half2_hashed_hostname = strtoupper($half2_hashed_hostname);
-	$hashed_hostname = implode("", array($half1_hashed_hostname, $up_half2_hashed_hostname) );
-	$shuffled_hostname = str_shuffle($hashed_hostname);
-	
-	$key = substr($shuffled_hostname, 0, 5);
-	
-	
+			
+	// query for id for the currrent url
 	$query = "SELECT id FROM url WHERE urls =\"$new_hostname\"";
 	$query_run = mysql_query($query);
 		
+		
+	// url already present or not
 	if(mysql_num_rows($query_run) != NULL) {
 		$query_raw = mysql_fetch_assoc($query_run);
 		$key = $query_raw["id"];
 	}else {
+		$hashed_hostname = md5($new_hostname);
+
+		//making more options for ids to save
+		$half1_hashed_hostname = substr($hashed_hostname, 0, strlen($hashed_hostname)/2);	
+		$half2_hashed_hostname = substr($hashed_hostname, strlen($hashed_hostname)/2 + 1, strlen($hashed_hostname)); 
+		$up_half2_hashed_hostname = strtoupper($half2_hashed_hostname);
+		$hashed_hostname = implode("", array($half1_hashed_hostname, $up_half2_hashed_hostname) );
+		$shuffled_hostname = str_shuffle($hashed_hostname);
+	
+		//take the id (key) and insert it into the database
+		$key = substr($shuffled_hostname, 0, 5);
 		$query = "INSERT INTO url VALUES (\"$key\", \"$new_hostname\")";
 		mysql_query($query);
-			
-	$handle = fopen($key.".php", 'w'); 
 		
-	$string = "
-	<?php
-		session_start();
-		\$_SESSION['code'] = \"{$key}\";
+		// make file with current key name as user will be direct to it through url. 	
+		$handle = fopen($key.".php", 'w'); 	
 		
-		header('Location: url_redig.php'); 
-	?> ";	
-	fwrite($handle,$string );
-	fclose($handle);
+		// put the current in that file and also store that in session for next re-direction
+		$string = "
+		<?php
+			session_start();
+			\$_SESSION['code'] = \"{$key}\";
+			header('Location: url_redig.php'); 
+		?> ";	
+		fwrite($handle,$string );
+		fclose($handle);
 	}	
+	// give shorted url appending to your current directory at server
 	echo '<span>Find your requested short url bellow</span> <br /><br />';
 	echo '<span id="shorted">',$myhost,$script_name,$key,'.php</span><br />';
 
